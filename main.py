@@ -3,15 +3,16 @@
 import discord
 from discord.ext import commands
 import logging
+import json
 import random
 import tbapy
 import html
 from io import StringIO
 
 config = open("config.txt", "r")
-configtxt = config.readlines()
+credentials = json.load(config)
 config.close()
-print(configtxt)
+print(credentials)
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
@@ -23,9 +24,9 @@ description = "A python-based Discord bot for running a fantasy league for the F
 
 bot = commands.Bot(command_prefix=':', description=description)
 
-tba = tbapy.TBA(configtxt[0])
+tba = tbapy.TBA(credentials["tba"])
 tbastatus = tba.status()
-# year = tbastatus.year()
+year = tbastatus['current_season']
 
 html_escape_table = {
     "&": "&amp;",
@@ -38,10 +39,10 @@ html_escape_table = {
 @bot.event
 async def on_ready():
     print('Logged in as')
-    print(bot.user.name)
+    # print(bot.user.name)
     print(bot.user.id)
     print('------')
-    print(tbastatus)
+    # print(tbastatus)
     print('Current Year:'+year)
 
 @bot.command()
@@ -67,4 +68,4 @@ def html_escape(text):
     """Produce entities within text."""
     return "".join(html_escape_table.get(c,c) for c in text)
 
-bot.run(configtxt[1])
+bot.run(credentials["discord"])
