@@ -43,24 +43,12 @@ async def on_ready():
     print(bot.user.id)
     print('------')
     # print(tbastatus)
-    print('Current Year:'+year)
-
-@bot.command()
-async def roll(dice : str):
-    """Rolls a dice in NdN format."""
-    try:
-        rolls, limit = map(int, dice.split('d'))
-    except Exception:
-        await bot.say('Format has to be in NdN!')
-        return
-
-    result = ', '.join(str(random.randint(1, limit)) for r in range(rolls))
-    await bot.say(result)
+    print('Current Year:'+ str(year))
 
 @bot.command()
 async def listevents():
     await bot.say('Loading events...')
-    events = tba.events(2017, False)
+    events = tba.events(2017, True)
     print(events)
     await bot.say(html_escape(events))
 
