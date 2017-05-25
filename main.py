@@ -28,14 +28,6 @@ tba = tbapy.TBA(credentials["tba"])
 tbastatus = tba.status()
 year = tbastatus['current_season']
 
-html_escape_table = {
-    "&": "&amp;",
-    '"': "&quot;",
-    "'": "&apos;",
-    ">": "&gt;",
-    "<": "&lt;",
-    }
-
 @bot.event
 async def on_ready():
     print('Logged in as')
@@ -48,12 +40,12 @@ async def on_ready():
 @bot.command()
 async def listevents():
     await bot.say('Loading events...')
-    events = tba.events(2017, True)
-    print(events)
-    await bot.say(html_escape(events))
+    events = tba.events(year, True)
+    total = ""
+    for event in events:
+        total = total + event
+    print(total)
+    await bot.say(total)
 
-def html_escape(text):
-    """Produce entities within text."""
-    return "".join(html_escape_table.get(c,c) for c in text)
 
 bot.run(credentials["discord"])
