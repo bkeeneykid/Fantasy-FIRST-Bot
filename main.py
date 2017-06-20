@@ -8,6 +8,7 @@ import random
 import tbapy
 import html
 from io import StringIO
+import time
 
 config = open("config.txt", "r")
 credentials = json.load(config)
@@ -38,32 +39,45 @@ async def on_ready():
 
 @bot.command()
 async def listevents(message):
-    await message.channel.send('Loading events...')
-    events = tba.events(year,False,True)
-    # print(events)
-    embed = discord.Embed()
-    for event in events:
-        embed.add_field(name=event['name'],value=event['key'], inline=True)
-        print(event)
-        print(embed.to_dict())
-        if len(embed.to_dict()['fields']) > 25:
-            break
-    edit_message = last_message('Loading events...',message.channel)
-    await message.channel.send(embed=embed)
-    await edit_message.delete()
+    with message.channel.typing():
+        events = tba.events(year,False,True)
+        # print(events)
+        embed = discord.Embed()
+        for event in events:
+            embed.add_field(name=event['name'],value=event['key'], inline=True)
+            print(event)
+            print(embed.to_dict())
+            if len(embed.to_dict()['fields']) > 25:
+                break
+        await message.channel.send(embed=embed)
 
-def last_message(query, channel):
-    for message in channel.history(limit=100):
-        if message.content == query:
-            return message
 
 @bot.command()
 async def createteam(message, name):
-    r = await randint(0,255)
-    g = await randint(0,255)
-    b = await randint(0,255)
-    color = await color.from_rgb(r,g,b)
-    role = message.channel.guild.create_role(name=name, color = color, mentionable = true)
+    r = random.randint(0,255)
+    g = random.randint(0,255)
+    b = random.randint(0,255)
+    roleColor = discord.Color.from_rgb(r,g,b)
+    newRole = await message.channel.guild.create_role(name=name, color = roleColor, mentionable = True)
+    await message.author.add_roles(newRole)
+    await message.channel.send("Created team {0}. Please invite others to the team with {1}inviteTeam {0} <username>".format(newRole.mention, bot.command_prefix))
 
+@bot.command()
+async def inviteteam(context):
+    if len(context.message.role_mentions) == 0:
+        await context.message.channel.send("Please mention the team that you would like to add people to.")
+        return
+    elif len(context.message.role_mentions) > 1:
+        await context.message.channel.send("Please only mention one team.")
+        return
+    #todo check if context sender is in team.
+    #todo check if team has admin or mod powers
+    mentionList = ""
+    for member in context.message.mentions:
+        await member.add_roles(context.message.role_mentions[0])
+        if len(mentionList) > 0:
+            mentionList += ", "
+        mentionList += member.mention
+    await context.message.channel.send("Added member(s) {0} to role {1}".format(mentionList, context.message.role_mentions[0].mention))
 
 bot.run(credentials["discord"])
