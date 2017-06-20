@@ -70,14 +70,25 @@ async def inviteteam(context):
     elif len(context.message.role_mentions) > 1:
         await context.message.channel.send("Please only mention one team.")
         return
-    #todo check if context sender is in team.
-    #todo check if team has admin or mod powers
+    elif context.message.role_mentions[0].hoist:
+        #make sure your mod roles are hoisted, as this is how it checks if that team can be added to.
+        await context.message.channel.send("You are not allowed to invite people to that role.")
+        return
+    elif not context.message.role_mentions[0] in context.message.author.roles:
+        await context.message.channel.send("You are not in that team, and are not allowed to invite people to it.")
+        return
     mentionList = ""
     for member in context.message.mentions:
+        if member in context.message.role_mentions[0].members:
+            await context.message.channel.send("Member {0} already has that role.".format(member.mention))
+            continue
         await member.add_roles(context.message.role_mentions[0])
         if len(mentionList) > 0:
             mentionList += ", "
         mentionList += member.mention
+
+    if mentionList == "":
+        return
     await context.message.channel.send("Added member(s) {0} to role {1}".format(mentionList, context.message.role_mentions[0].mention))
 
 bot.run(credentials["discord"])
