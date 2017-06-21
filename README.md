@@ -12,7 +12,7 @@ Creates a role for you. You can have as many teams as you would like. If your te
 ### `.editTeam <TeamMention> (TeamName) (color)`
 Similar to create team, you can edit your team’s name and color here. First, mention your team you’d like to edit with a @, then put the name or color in any order. Your team name in this command must be surrounded by quotes, and the color value must start with #. NOTE. This command is currently not implemented. If you need your team changed, please contact the commissioner.
 ### `.inviteTeam <TeamMention> <User(s)>`
-Invites members to a team you are apart of. FIrst, mention your team you’d like to invite someone to using @, then mention all the users you’d like to invite to that team.
+Invites members to a team you are apart of. First, mention your team you’d like to invite someone to using @, then mention all the users you’d like to invite to that team. It does not matter whether the team or the user is mentioned first.
 ### `.createLeague <LeagueCode> <LeagueName>`
 Creates a league. This by itself doesn’t do anything, you have to add events to your league with the .eventLeague command. The league code must be 8 characters or less and have no spaces. You must create a league for any draft, even if the league only will have one event.
 ### `.eventLeague <LeagueCode> <EventCode>`

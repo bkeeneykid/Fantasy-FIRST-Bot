@@ -9,30 +9,24 @@ import tbapy
 import html
 from io import StringIO
 import time
-from orator import Model, DatabaseManager
-
-class League(Model):
-    __primary_key__ = "leagueName"
-    __incrementing__ = False
-
-config = {
-    'sqlite': {
-        'driver': 'sqlite',
-        'database': 'ff.db'
-    }
-}
-db = DatabaseManager(config)
-Model.set_connection_resolver(db)
-
-config = open("config.txt", "r")
-credentials = json.load(config)
-config.close()
+from orator import Model, DatabaseManager, Schema
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
+
+class League(Model):
+    pass
+
+config = open("config.json", "r")
+credentials = json.load(config)
+config.close()
+
+db = DatabaseManager(credentials['database'])
+Model.set_connection_resolver(db)
+schema = Schema(db)
 
 description = "A python-based Discord bot for running a fantasy league for the FIRST Robotics Competition"
 
@@ -104,5 +98,10 @@ async def inviteteam(context):
     if mentionList == "":
         return
     await context.message.channel.send("Added member(s) {0} to role {1}".format(mentionList, context.message.role_mentions[0].mention))
+
+@bot.command()
+async def createLeague(context, leagueName):
+    pass
+
 
 bot.run(credentials["discord"])

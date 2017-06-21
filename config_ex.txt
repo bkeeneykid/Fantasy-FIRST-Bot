@@ -1,4 +1,0 @@
-{
-  "discord": "yourkey",
-  "tba": "yourkey"
-}

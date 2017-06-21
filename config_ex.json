@@ -1,0 +1,10 @@
+{
+  "discord": "yourkey",
+  "tba": "yourkey",
+  "database": {
+		"sqlite": {
+			"driver": "sqlite",
+			"database": "ff.db"
+		}
+	}
+}

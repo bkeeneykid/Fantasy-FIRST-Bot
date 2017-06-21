@@ -89,4 +89,4 @@ ENV/
 .ropeproject
 
 # FF Bot Config Files
-config.txt
+config.json
