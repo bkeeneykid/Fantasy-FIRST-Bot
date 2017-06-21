@@ -9,6 +9,20 @@ import tbapy
 import html
 from io import StringIO
 import time
+from orator import Model, DatabaseManager
+
+class League(Model):
+    __primary_key__ = "leagueName"
+    __incrementing__ = False
+
+config = {
+    'sqlite': {
+        'driver': 'sqlite',
+        'database': 'ff.db'
+    }
+}
+db = DatabaseManager(config)
+Model.set_connection_resolver(db)
 
 config = open("config.txt", "r")
 credentials = json.load(config)
@@ -45,8 +59,8 @@ async def listevents(message):
         embed = discord.Embed()
         for event in events:
             embed.add_field(name=event['name'],value=event['key'], inline=True)
-            print(event)
-            print(embed.to_dict())
+            #print(event)
+            #print(embed.to_dict())
             if len(embed.to_dict()['fields']) > 25:
                 break
         await message.channel.send(embed=embed)
@@ -72,7 +86,7 @@ async def inviteteam(context):
         return
     elif context.message.role_mentions[0].hoist:
         #make sure your mod roles are hoisted, as this is how it checks if that team can be added to.
-        await context.message.channel.send("You are not allowed to invite people to that role.")
+        await context.message.channel.send("You are not allowed to invite people to that team.")
         return
     elif not context.message.role_mentions[0] in context.message.author.roles:
         await context.message.channel.send("You are not in that team, and are not allowed to invite people to it.")
@@ -80,7 +94,7 @@ async def inviteteam(context):
     mentionList = ""
     for member in context.message.mentions:
         if member in context.message.role_mentions[0].members:
-            await context.message.channel.send("Member {0} already has that role.".format(member.mention))
+            await context.message.channel.send("Member {0} is already part of that team.".format(member.mention))
             continue
         await member.add_roles(context.message.role_mentions[0])
         if len(mentionList) > 0:
