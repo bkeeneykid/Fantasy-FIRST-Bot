@@ -33,8 +33,7 @@ description = "A python-based Discord bot for running a fantasy league for the F
 bot = commands.Bot(command_prefix='.', description=description, pm_help=True)
 
 tba = tbapy.TBA(credentials["tba"])
-tbastatus = tba.status()
-year = tbastatus['current_season']
+year = tba.status()['current_season']
 
 @bot.event
 async def on_ready():
@@ -42,8 +41,7 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
-    # print(tbastatus)
-    print('Current Year:'+ str(year))
+    print(f'Current Year:{str(year)}')
 
 @bot.command()
 async def listevents(message):
