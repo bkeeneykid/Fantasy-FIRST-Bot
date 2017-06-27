@@ -23,10 +23,13 @@ the commissioner.
 Invites members to a team you are apart of. First, mention your team you’d like to invite someone to using @, then 
 mention all the users you’d like to invite to that team. It does not matter whether the team or the user is mentioned 
 first.
-### `.createLeague <LeagueCode> <LeagueName>`
+### `.createLeague <LeagueCode> <Private>`
 Creates a league. This by itself doesn’t do anything, you have to add events to your league with the .eventLeague 
 command. The league code must be 8 characters or less and have no spaces. You must create a league for any draft,
 even if the league only will have one event.
+### `.deleteLeague <LeagueCode>`
+Pretty self explanatory. You can only delete a league if you're in it. It only soft-deletes, so if someone's an idiot,
+the admins will be able to reinitalize it with the prior data.
 ### `.eventLeague <LeagueCode> <EventCode>`
 Adds events to a league which you are in. Event code must be the event code listed on TBA or FIRST’s website, with or 
 without the year. You can also add district codes to add all of that district’s events or a championship’s code to add 

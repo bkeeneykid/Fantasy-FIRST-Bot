@@ -90,3 +90,4 @@ ENV/
 
 # FF Bot Config Files
 config.json
+ff.db

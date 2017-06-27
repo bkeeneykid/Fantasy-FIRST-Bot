@@ -7,7 +7,7 @@ import random
 import discord
 import tbapy
 from discord.ext import commands
-from orator import Model, DatabaseManager, Schema
+from orator import Model, DatabaseManager, Schema, SoftDeletes
 
 #Set up automatic message logging
 logger = logging.getLogger('discord')
@@ -17,10 +17,10 @@ handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(me
 logger.addHandler(handler)
 
 #define classes for Orator database handling (one class per table)
-class League(Model):
+class League(SoftDeletes, Model):
     pass
 
-class Draft(Model):
+class Draft(SoftDeletes, Model):
     pass
 
 #open config
@@ -38,6 +38,7 @@ if not schema.has_table('leagues'):
     print("Creating Leagues Table")
     with schema.create('leagues') as table:
         table.timestamps()
+        table.soft_deletes()
         table.increments('id')
         table.string('leagueName')
         table.string('leagueEvents').nullable()
@@ -48,6 +49,7 @@ if not schema.has_table('drafts'):
     print("Creating Drafts Table")
     with schema.create('drafts') as table:
         table.timestamps()
+        table.soft_deletes()
         table.increments('id')
         table.string('draftLeague')
         table.string('eventCode')
