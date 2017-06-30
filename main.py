@@ -41,7 +41,7 @@ if not schema.has_table('leagues'):
         table.soft_deletes()
         table.increments('id')
         table.string('leagueName')
-        table.string('leagueEvents').nullable()
+        table.json('leagueEvents').nullable()
         table.string('channelId')
         table.boolean('private')
 
@@ -61,6 +61,13 @@ bot = commands.Bot(command_prefix='.', description=description)
 
 tba = tbapy.TBA(credentials["tba"])
 year = tba.status()['current_season']
+
+#make commands case insensitive
+async def on_message(self, message):
+  ctx = await self.get_context(message)
+  if ctx.prefix is not None:
+    ctx.command = self.commands.get(ctx.invoked_with.lower())
+    await self.invoke(ctx)
 
 @bot.event
 async def on_ready():
@@ -124,13 +131,16 @@ async def inviteteam(context):
     await context.message.channel.send("Added member(s) {0} to role {1}".format(mentionList, context.message.role_mentions[0].mention))
 
 @bot.command()
-async def createLeague(ctx, leagueName, private=False):
+async def createLeague(ctx, leagueName, private=True):
     testLeague = League.where('leagueName', leagueName).get()
     if not testLeague.is_empty():
         await ctx.channel.send("That league already exists. Please try again with a different League Name.")
         return
-    if (" " in leagueName) or ("-" in leagueName) or ("_" in leagueName):
+    elif (" " in leagueName) or ("-" in leagueName) or ("_" in leagueName):
         await ctx.channel.send("Prohibited character in league name. Try again without spaces, `_` or `-` characters.")
+        return
+    elif len(leagueName) > 8:
+        await ctx.channel.send("Your league name is too long. Please shorten it under 9 characters.")
         return
 
     # setting up permissions
@@ -149,9 +159,39 @@ async def createLeague(ctx, leagueName, private=False):
     league.save()
 
     if private:
-        await ctx.channel.send("League {0} created. A channel is available at {1}. Invite others to your league with `{2}inviteToLeague <users>`.".format(leagueName,channel.mention,bot.command_prefix))
+        await ctx.channel.send("League {0} created. A channel is available at {1}. Invite others to your league with `{2}inviteLeague {0} <roles>`.".format(leagueName,channel.mention,bot.command_prefix))
     else:
         await ctx.channel.send("League {0} created. A channel is available at {1}. Others can join this league with `{2}joinLeague {0}`.".format(leagueName,channel.mention,bot.command_prefix))
+
+@bot.command()
+async def inviteLeague(ctx,leagueName=None):
+    if len(ctx.message.role_mentions) == 0:
+        await ctx.channel.send("Please mention the team that you would like to add to this league.")
+        return
+    elif len(ctx.message.role_mentions) > 1:
+        await ctx.channel.send("Please only mention one team.")
+        return
+    elif ctx.message.role_mentions[0].hoist:
+        #make sure your mod roles are hoisted, as this is how it checks if that team can be added to.
+        await ctx.channel.send("You are not allowed to invite that role.")
+        return
+    elif len(ctx.message.mentions) > 0:
+        await ctx.channel.send("You cannot invite individual members to a league. Please create a team using `.createTeam <teamName>` and try again to add that individual.")
+        return
+    testLeague = await findLeague(ctx, leagueName)
+    channel = ctx.guild.get_channel(int(testLeague.channelId))
+    for member in ctx.message.role_mentions[0].members:
+        if member in channel.members:
+            await ctx.channel.send("There is already a user of that team in that league, and as such, they cannot join this league.")
+            return
+    if not ctx.author in channel.members:
+        await ctx.channel.send("You are not part of that League, and as such you cannot invite people to it.")
+        return
+    await channel.set_permissions(ctx.message.role_mentions[0], read_messages=True)
+    if not ctx.channel == channel:
+        await ctx.channel.send("{0} has been added to the League {1}.".format(ctx.message.role_mentions[0].mention, testLeague.leagueName))
+    await channel.send("{0} has been added to this league.".format(ctx.message.role_mentions[0].mention))
+
 
 @bot.command()
 async def deleteLeague(ctx, leagueName):
@@ -170,6 +210,46 @@ async def deleteLeague(ctx, leagueName):
     else:
         await ctx.channel.send("You do not have permission to delete that league.")
 
+@bot.command()
+async def eventLeague(ctx, eventCode, leagueName=None):
+    testLeague = await findLeague(ctx,leagueName)
+    if eventCode == "*":
+        eventList = {}
+        for event in tba.events(year,True):
+            eventList[event] = False
+        testLeague.leagueEvents = json.dumps(eventList)
+        testLeague.save()
+        await ctx.channel.send("All events added to league {0}.".format(testLeague.first().leagueName))
+        return
+    else:
+        #make sure the event actually exists
+        try:
+            tba.event(str(year) + eventCode)
+        except:
+            await ctx.channel.send("Event not found.")
+            return
+        #If not null, load in the JSON in the database, otherwise create a new dict
+        if not testLeague.leagueEvents == None:
+            eventList = json.loads(testLeague.leagueEvents)
+        else:
+            eventList = {}
+        eventList[eventCode] = False
+        testLeague.leagueEvents = json.dumps(eventList)
+        testLeague.save()
+        await ctx.channel.send("Event {0} added to league {1}.".format(eventCode, testLeague.leagueName))
+        return
+
+async def findLeague(ctx, leagueName = None):
+    if leagueName is None or leagueName[0] == "<":
+        channelName = ctx.channel.name
+        testLeague = League.where('leagueName', channelName).take(1).get()
+        if testLeague.is_empty():
+            await ctx.channel.send("You did not specific a league, and this is not inside a league channel. Please try again.")
+            return None
+        else:
+            return testLeague.first()
+    else:
+        return League.where('leagueName', leagueName).take(1).get().first()
 
 
 bot.run(credentials["discord"])

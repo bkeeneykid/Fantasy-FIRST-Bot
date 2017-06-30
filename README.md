@@ -33,7 +33,8 @@ the admins will be able to reinitalize it with the prior data.
 ### `.eventLeague <LeagueCode> <EventCode>`
 Adds events to a league which you are in. Event code must be the event code listed on TBA or FIRST’s website, with or 
 without the year. You can also add district codes to add all of that district’s events or a championship’s code to add 
-all of that championship’s divisions. An asterisk adds all events.
+all of that championship’s divisions. An asterisk adds all events. Don't be dumb and add events you don't mean to, cause
+it's a pain to remove. Also don't add an event twice. 
 ### `.joinLeague (TeamMention) <LeagueCode>`
 Adds yourself to a league. You cannot join a league after the drafts have started. You must state your team if you have 
 joined more than one. You cannot have a person be in multiple teams in the same league, however people can still be in 
