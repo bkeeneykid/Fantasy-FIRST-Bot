@@ -334,17 +334,18 @@ async def cleanEvent(eventCode):
 @bot.command()
 async def startDraft(ctx, eventCode, date=None, leagueName = None):
 	if date == None:
-		date = datetime.datetime.today()+datetime.timedelta(minutes=30)
-	elif date < datetime.datetime.today():
-		await ctx.channel.send("That time is before the current time.")
-		return
+		draftTime = datetime.datetime.today()+datetime.timedelta(minutes=30)
+	else:
+		draftTime = parse(date)
 	testLeague = await findLeague(ctx, leagueName)
 	eventCode = await cleanEvent(eventCode)
 	testDraft = Draft.where('draftLeague', testLeague.id).where('eventCode', eventCode).first_or_fail()
-	datetime = parse(date)
-	testDraft.startTime = datetime
+	if draftTime < datetime.datetime.today():
+		await ctx.channel.send("That time is before the current time.")
+		return
+	testDraft.startTime = draftTime
 	testDraft.save()
-	await ctx.channel.send("The draft for {0} will start at {1}".format(leagueName, date))
+	await ctx.channel.send("The draft for {0} will start on {1}".format(testLeague.leagueName, draftTime))
 
 
 bot.run(credentials["discord"])
