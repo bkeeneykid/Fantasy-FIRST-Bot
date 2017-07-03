@@ -409,6 +409,20 @@ async def startDraft(ctx, eventCode, date=None, leagueName = None):
 
 @bot.command()
 async def pickTeam(ctx, team):
+	channame = ctx.channel.name
+	try:
+		draftinfo = channame.split('_')
+		testLeague = League.where('leagueName', draftinfo[1]).first_or_fail()
+		tempDraft = League.where('eventCode', draftinfo[0]).where('draftLeague', testLeague.id).first_or_fail()
+	except:
+		await ctx.channel.send("Incorrect channel. Try again in a draft channel.")
+	guild_lookup = {r.id: r for r in ctx.guild.roles}
+	for team in testLeague.roles:
+		role = guild_lookup[team]
+		if ctx.author in role.members:
+			break
+	picks = json.loads(tempDraft.picks)
+	draftteam = picks[role.id]
 
 
 bot.run(credentials["discord"])
