@@ -57,6 +57,14 @@ if not schema.has_table('leagues'):
 		table.increments('id')
 		table.string('leagueName')
 		table.string('channelId')
+		table.json('roles').default('[]')
+		settings = {}
+		settings['rounds'] = 3
+		settings['roundTiming'] = {}
+		settings['roundTiming']['1'] = 5
+		settings['roundTiming']['2'] = 3
+		settings['roundTiming']['3'] = 2
+		table.json('settings').default(json.dumps(settings))
 		table.boolean('private')
 
 if not schema.has_table('drafts'):
@@ -68,8 +76,8 @@ if not schema.has_table('drafts'):
 		table.json('picks').nullable()
 		table.json('points').nullable()
 		table.datetime('startTime').nullable()
-		table.string('channelId')
-		table.string('draftLeague')
+		table.string('channelId').nullable()
+		table.integer('draftLeague')
 		table.string('eventCode')
 
 description = "A python-based Discord bot for running a fantasy league for the FIRST Robotics Competition"
@@ -115,7 +123,56 @@ async def initDraft(draft):
 	newoverwrites = {}
 	for overwrite in overwrites:
 		newoverwrites[overwrite[0]] = overwrite[1]
-	await channel.guild.create_text_channel(name,overwrites=newoverwrites)
+	tempchan = await channel.guild.create_text_channel(name,overwrites=newoverwrites)
+	event = tba.event(draft.eventCode)
+	await tempchan.send("This is the channel for league {0} and the {1}. Drafting will start on {2} according to the timetable listed below.".format(league.leagueName,event['name'],draft.startTime))
+	roles = json.loads(league.roles)
+	settings = json.loads(league.settings)
+	random.shuffle(roles)
+	picks = {}
+	for role in roles:
+		picks[role] = {}
+	startTime = parse(draft.startTime)
+	for round in range(1, settings['rounds'] + 1):
+		step = 0
+		temptime = startTime
+		for role in roles:
+			roleItem = {}
+			offset = datetime.timedelta(minutes=settings['roundTiming'][str(round)]) * step
+			draftTime = temptime + offset
+			temptime = draftTime
+			roleItem['time'] = draftTime.strftime("%X")
+			roleItem['pick'] = None
+			picks[role][round] = roleItem
+			step += 1
+		try:
+			startTime = temptime + datetime.timedelta(minutes=settings['roundTiming'][str(round+1)])
+		except:
+			pass
+	draft.picks = json.dumps(picks)
+	draft.channelId = tempchan.id
+	draft.save()
+	await displayPicks(draft)
+
+
+
+
+async def displayPicks(draft):
+	league = draft.League
+	channel = bot.get_channel(int(draft.channelId))
+	embed = discord.Embed()
+	embed.timestamp = datetime.datetime.today()
+	guild_lookup = {r.id: r for r in channel.guild.roles}
+	roles = json.loads(draft.picks)
+	for role in roles:
+		times = ""
+		for round in roles[role]:
+			if len(times) > 0:
+				times += ", "
+			times += roles[role][round]['time']
+		embed.add_field(name="@"+guild_lookup[int(role)].name, value=times, inline=False)
+	await channel.send(embed=embed)
+
 
 
 @bot.event
@@ -174,7 +231,6 @@ async def inviteteam(context):
 		if len(mentionList) > 0:
 			mentionList += ", "
 		mentionList += member.mention
-
 	if mentionList == "":
 		return
 	await context.message.channel.send("Added member(s) {0} to role {1}".format(mentionList, context.message.role_mentions[0].mention))
@@ -195,8 +251,7 @@ async def createLeague(ctx, leagueName, private=True):
 	# setting up permissions
 	overwrites = {
 		ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
-		ctx.guild.me: discord.PermissionOverwrite(read_messages=True),
-		ctx.message.author: discord.PermissionOverwrite(read_messages=True)
+		ctx.guild.me: discord.PermissionOverwrite(read_messages=True)
 	}
 
 	channel = await ctx.guild.create_text_channel(leagueName, overwrites=overwrites)
@@ -208,9 +263,9 @@ async def createLeague(ctx, leagueName, private=True):
 	league.save()
 
 	if private:
-		await ctx.channel.send("League {0} created. A channel is available at {1}. Invite others to your league with `{2}inviteLeague {0} <roles>`.".format(leagueName,channel.mention,bot.command_prefix))
+		await ctx.channel.send("League {0} created. A channel is available at {1}. Invite others to your league with `{2}inviteLeague {0} <roles>`. Keep in mind you still have to add your own team to this league to see the channel.".format(leagueName,channel.mention,bot.command_prefix))
 	else:
-		await ctx.channel.send("League {0} created. A channel is available at {1}. Others can join this league with `{2}joinLeague {0}`.".format(leagueName,channel.mention,bot.command_prefix))
+		await ctx.channel.send("League {0} created. A channel is available at {1}. Others can join this league with `{2}joinLeague {0}`. Keep in mind you still have to add your own team to this league.".format(leagueName,channel.mention,bot.command_prefix))
 
 @bot.command()
 async def inviteLeague(ctx,leagueName=None):
@@ -230,13 +285,17 @@ async def inviteLeague(ctx,leagueName=None):
 	testLeague = await findLeague(ctx, leagueName)
 	channel = ctx.guild.get_channel(int(testLeague.channelId))
 	for member in ctx.message.role_mentions[0].members:
-		if member in channel.members:
+		if member in channel.members and not member.guild_permissions.administrator:
 			await ctx.channel.send("There is already a user of that team in that league, and as such, they cannot join this league.")
 			return
 	if not ctx.author in channel.members:
 		await ctx.channel.send("You are not part of that League, and as such you cannot invite people to it.")
 		return
 	await channel.set_permissions(ctx.message.role_mentions[0], read_messages=True)
+	roles = json.loads(testLeague.roles)
+	roles.append(ctx.message.role_mentions[0].id)
+	testLeague.roles = json.dumps(roles)
+	testLeague.save()
 	if not ctx.channel == channel:
 		await ctx.channel.send("{0} has been added to the League {1}.".format(ctx.message.role_mentions[0].mention, testLeague.leagueName))
 	await channel.send("{0} has been added to this league.".format(ctx.message.role_mentions[0].mention))
@@ -345,7 +404,11 @@ async def startDraft(ctx, eventCode, date=None, leagueName = None):
 		return
 	testDraft.startTime = draftTime
 	testDraft.save()
-	await ctx.channel.send("The draft for {0} will start on {1}".format(testLeague.leagueName, draftTime))
+	await ctx.channel.send("The draft for {0} will start on {1}. The channel will open for picking 24 hours ahead of time.".format(testLeague.leagueName, draftTime.strftime("%c")))
+
+
+@bot.command()
+async def pickTeam(ctx, team):
 
 
 bot.run(credentials["discord"])
